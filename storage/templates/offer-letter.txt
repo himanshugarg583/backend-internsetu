@@ -1,0 +1,20 @@
+Date: {{issue_date}}
+Intern ID: {{unique_id}}
+
+Dear {{name}},
+
+Congratulations! We are pleased to offer you the position of {{domain}} Intern at InternSetu.
+
+Your internship details are as follows:
+
+  Domain:      {{domain}}
+  Duration:    {{duration}}
+  Start Date:  {{start_date}}
+  End Date:    {{end_date}}
+
+This is a remote, project-based internship. You will be assigned practical tasks through your InternSetu dashboard. Please complete the joining task by sharing this offer letter on LinkedIn.
+
+We look forward to working with you.
+
+Warm regards,
+Team InternSetu

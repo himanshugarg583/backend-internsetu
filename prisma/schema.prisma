@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PaymentPurpose {
+  INTERNSHIP_CERTIFICATE
+}
+
+enum PaymentGateway {
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CertificateType {
+  INTERNSHIP
+}
+
+enum CertificateStatus {
+  VALID
+  REVOKED
+}
+
+model User {
+  id              String        @id @default(uuid()) @db.Uuid
+  name            String
+  email           String        @unique
+  phone           String?
+  passwordHash    String?
+  googleId        String?       @unique
+  college         String?
+  course          String?
+  academicYear    String?
+  role            Role          @default(STUDENT)
+  status          AccountStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  tokenVersion    Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  otps         Otp[]
+  enrollments  InternshipEnrollment[]
+  payments     Payment[]
+  certificates Certificate[]
+  reviews      TaskSubmission[]       @relation("Reviewer")
+
+  @@index([role, createdAt])
+}
+
+model Otp {
+  id         String     @id @default(uuid()) @db.Uuid
+  userId     String?    @db.Uuid
+  email      String
+  purpose    OtpPurpose
+  otpHash    String
+  expiresAt  DateTime
+  attempts   Int        @default(0)
+  verifiedAt DateTime?
+  usedAt     DateTime?
+  createdAt  DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, purpose, createdAt])
+}
+
+model Domain {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  category    String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks       Task[]
+  enrollments InternshipEnrollment[]
+
+  @@index([isActive, category])
+}
+
+model InternshipEnrollment {
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @db.Uuid
+  domainId      String           @db.Uuid
+  internId      String           @unique
+  durationWeeks Int
+  startDate     DateTime         @db.Date
+  endDate       DateTime         @db.Date
+  status        EnrollmentStatus @default(ACTIVE)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  domain       Domain           @relation(fields: [domainId], references: [id], onDelete: Restrict)
+  submissions  TaskSubmission[]
+  offerLetter  OfferLetter?
+  payments     Payment[]
+  certificates Certificate[]
+
+  @@unique([userId, domainId])
+  @@index([userId])
+  @@index([domainId])
+  @@index([createdAt])
+}
+
+model Task {
+  id              String   @id @default(uuid()) @db.Uuid
+  domainId        String   @db.Uuid
+  title           String
+  description     String
+  sequence        Int
+  isJoiningTask   Boolean  @default(false)
+  requiresGithub  Boolean  @default(false)
+  requiresLinkedin Boolean @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  domain      Domain           @relation(fields: [domainId], references: [id], onDelete: Restrict)
+  submissions TaskSubmission[]
+
+  @@unique([domainId, sequence])
+  @@index([domainId, isActive])
+}
+
+model TaskSubmission {
+  id           String           @id @default(uuid()) @db.Uuid
+  enrollmentId String           @db.Uuid
+  taskId       String           @db.Uuid
+  githubUrl    String?
+  linkedinUrl  String?
+  notes        String?
+  status       SubmissionStatus @default(PENDING)
+  adminRemarks String?
+  reviewerId   String?          @db.Uuid
+  attempt      Int              @default(1)
+  history      Json             @default("[]")
+  submittedAt  DateTime         @default(now())
+  reviewedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  enrollment InternshipEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  task       Task                 @relation(fields: [taskId], references: [id], onDelete: Restrict)
+  reviewer   User?                @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@unique([enrollmentId, taskId])
+  @@index([status, submittedAt])
+}
+
+model OfferLetter {
+  id               String    @id @default(uuid()) @db.Uuid
+  enrollmentId     String    @unique @db.Uuid
+  filePath         String
+  generatedAt      DateTime  @default(now())
+  lastDownloadedAt DateTime?
+  downloadCount    Int       @default(0)
+
+  enrollment InternshipEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String         @db.Uuid
+  enrollmentId     String         @db.Uuid
+  purpose          PaymentPurpose
+  gateway          PaymentGateway @default(RAZORPAY)
+  gatewayOrderId   String         @unique
+  gatewayPaymentId String?        @unique
+  baseAmount       Decimal        @db.Decimal(12, 2)
+  gstAmount        Decimal        @db.Decimal(12, 2)
+  totalAmount      Decimal        @db.Decimal(12, 2)
+  currency         String         @default("INR")
+  status           PaymentStatus  @default(CREATED)
+  paidAt           DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  enrollment  InternshipEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  certificate Certificate?
+
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+model Certificate {
+  id               String            @id @default(uuid()) @db.Uuid
+  userId           String            @db.Uuid
+  enrollmentId     String            @db.Uuid
+  paymentId        String            @unique @db.Uuid
+  verificationId   String            @unique
+  type             CertificateType   @default(INTERNSHIP)
+  issueDate        DateTime          @db.Date
+  status           CertificateStatus @default(VALID)
+  filePath         String
+  revokedAt        DateTime?
+  revocationReason String?
+  createdAt        DateTime          @default(now())
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Restrict)
+  enrollment InternshipEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  payment    Payment              @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([enrollmentId])
+}
+
+/// Singleton row (id = 1) holding admin-editable platform settings. Fees/GST remain env-driven.
+model PlatformSetting {
+  id            Int      @id @default(1)
+  platformName  String   @default("InternSetu")
+  supportEmail  String?
+  supportPhone  String?
+  notifications Json     @default("{}")
+  updatedById   String?  @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

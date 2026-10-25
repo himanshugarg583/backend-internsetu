@@ -1,0 +1,8 @@
+This is to certify that
+
+{{name}}
+
+has successfully completed a {{duration}} internship in {{domain}} with InternSetu from {{start_date}} to {{end_date}} (Intern ID: {{intern_id}}).
+
+Issued on {{issue_date}}
+Certificate ID: {{unique_id}}

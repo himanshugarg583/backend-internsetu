@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: internsetu
+    ports:
+      - "5433:5432"
+    volumes:
+      - internsetu-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+  backend:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/internsetu?schema=public
+      STORAGE_ROOT: /app/storage
+    ports:
+      - "4000:4000"
+    volumes:
+      - internsetu-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  internsetu-pg:
+  internsetu-storage:

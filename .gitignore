@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+
+# Generated private files
+storage/offer-letters/*
+storage/certificates/*
+storage/receipts/*
+storage/uploads/*
+!storage/**/.gitkeep
