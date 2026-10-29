@@ -40,6 +40,7 @@ router.get('/auth/me', authenticate, authController.me);
 
 // Student / shared
 router.patch('/me', authenticate, validate(U.updateMeSchema), userController.updateMe);
+router.get('/config', adminController.publicConfig);
 router.get('/domains', validate(D.listDomainsSchema), domainController.list);
 router.get('/domains/:slug', validate(D.domainSlugSchema), domainController.getBySlug);
 
@@ -60,6 +61,8 @@ router.get('/payments/:id', ...anyUser, byId, paymentController.get);
 router.get('/certificates/my', ...student, certificateController.listMine);
 router.get('/certificates/verify/:uniqueId', validate(P.verifySchema), certificateController.verify);
 router.get('/certificates/:id/download', ...anyUser, byId, certificateController.download);
+router.get('/certificates/:id/view', ...anyUser, byId, certificateController.viewHtml);
+router.get('/certificates/verify/:uniqueId/certificate', validate(P.verifySchema), certificateController.publicHtml);
 // Note: /payments/webhook/razorpay is mounted in app.ts with a raw body parser.
 
 // Admin
@@ -83,6 +86,7 @@ admin.patch('/tasks/:id/status', validate(T.taskStatusSchema), taskController.ad
 admin.get('/internships', validate(I.adminListInternshipsSchema), internshipController.adminList);
 admin.get('/internships/:id', byId, internshipController.adminGet);
 admin.post('/internships/:id/certificate', byId, certificateController.adminIssue);
+admin.post('/internships/:id/cancel', validate(I.cancelInternshipSchema), internshipController.adminCancel);
 admin.get('/task-submissions', validate(T.listSubmissionsSchema), submissionController.adminList);
 admin.get('/task-submissions/:id', byId, submissionController.adminGet);
 admin.post('/task-submissions/:id/approve', validate(T.approveSchema), submissionController.approve);

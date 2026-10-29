@@ -14,7 +14,13 @@ async function list(q: ListQuery, onlyActive: boolean) {
     ...(q.search && { name: { contains: q.search, mode: 'insensitive' } }),
   };
   const [items, total] = await prisma.$transaction([
-    prisma.domain.findMany({ where, skip, take, orderBy: { name: 'asc' } }),
+    prisma.domain.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { name: 'asc' },
+      ...(!onlyActive && { include: { _count: { select: { tasks: true, enrollments: true } } } }),
+    }),
     prisma.domain.count({ where }),
   ]);
   return paged(items, total, page, limit);

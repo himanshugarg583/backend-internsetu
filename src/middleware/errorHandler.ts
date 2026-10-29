@@ -22,5 +22,9 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     e = new AppError(500, 'INTERNAL_ERROR', 'Something went wrong');
   }
   if (e.statusCode >= 500 && e.code !== 'INTERNAL_ERROR') logger.error({ code: e.code, msg: e.message }, 'Server error');
-  res.status(e.statusCode).json({ success: false, error: { code: e.code, message: e.message, details: e.details } });
+  res.status(e.statusCode).json({
+    success: false,
+    message: e.message,
+    error: { code: e.code, message: e.message, details: e.details },
+  });
 }

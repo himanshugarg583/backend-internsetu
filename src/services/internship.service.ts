@@ -7,6 +7,7 @@ import { taskModel } from '../models/task.model';
 import { submissionModel } from '../models/taskSubmission.model';
 import { AppError } from '../utils/AppError';
 import { addDays, dateFilter, orderBy, paged, pagination, todayUtc } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 const categoryCode = (category: string) =>
   (category.replace(/[^A-Za-z]/g, '').slice(0, 3) || 'GEN').toUpperCase().padEnd(3, 'X');
@@ -44,7 +45,7 @@ export const internshipService = {
     prisma.internshipEnrollment.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      include: { domain: true, offerLetter: { select: { generatedAt: true, downloadCount: true } } },
+      include: { domain: true, offerLetter: { select: { generatedAt: true, downloadCount: true, lastDownloadedAt: true } } },
     }),
 
   /** Loads an enrollment and enforces ownership unless the caller is an admin. */
@@ -140,7 +141,8 @@ export const internshipService = {
     const reasons: string[] = [];
     if (e.status === 'CANCELLED') reasons.push('Internship is cancelled');
     if (!progressMet) reasons.push(`At least ${env.CERTIFICATE_MIN_PROGRESS}% of tasks must be approved`);
-    if (!endDateReached) reasons.push('Internship end date has not been reached');
+    // If progress is met (>= 50%), student is eligible immediately without waiting for future end date
+    if (!progressMet && !endDateReached) reasons.push('Internship end date has not been reached');
     if (existing) reasons.push('Certificate already issued');
     return {
       eligible: reasons.length === 0,
@@ -148,11 +150,11 @@ export const internshipService = {
       requiredPercent: env.CERTIFICATE_MIN_PROGRESS,
       progressMet,
       endDate: e.endDate,
-      endDateReached,
+      endDateReached: endDateReached || progressMet,
       alreadyIssued: Boolean(existing),
       certificateId: existing?.id ?? null,
       reasons,
-      fee: certificateFee(),
+      fee: certificateFee(e.durationWeeks),
     };
   },
 
@@ -186,11 +188,28 @@ export const internshipService = {
         skip,
         take,
         orderBy: orderBy(q.sortBy, q.sortOrder, 'createdAt'),
-        include: { domain: { select: { name: true } }, user: { select: { id: true, name: true, email: true } } },
+        include: {
+          domain: { select: { name: true } },
+          user: { select: { id: true, name: true, email: true } },
+          payments: { where: { status: 'PAID' }, select: { id: true } },
+          certificates: { where: { status: 'VALID' }, select: { id: true } },
+        },
       }),
       prisma.internshipEnrollment.count({ where }),
     ]);
-    return paged(items, total, page, limit);
+    const withProgress = await Promise.all(items.map(async (e) => ({ ...e, progress: await this.progress(e.id) })));
+    return paged(withProgress, total, page, limit);
+  },
+
+  async adminCancel(id: string, reason: string) {
+    const res = await prisma.internshipEnrollment.updateMany({ where: { id, status: 'ACTIVE' }, data: { status: 'CANCELLED' } });
+    if (res.count !== 1) {
+      const e = await prisma.internshipEnrollment.findUnique({ where: { id } });
+      if (!e) throw AppError.notFound('Internship not found');
+      throw AppError.conflict(`Internship is already ${e.status.toLowerCase()}`);
+    }
+    logger.info({ enrollmentId: id, reason }, 'Internship cancelled by admin');
+    return prisma.internshipEnrollment.findUniqueOrThrow({ where: { id } });
   },
 
   async adminGet(id: string) {
@@ -198,7 +217,7 @@ export const internshipService = {
       where: { id },
       include: {
         domain: true,
-        user: { select: { id: true, name: true, email: true, phone: true, college: true } },
+        user: { select: { id: true, name: true, email: true, phone: true, college: true, status: true, emailVerifiedAt: true } },
         offerLetter: true,
         submissions: { include: { task: { select: { title: true, sequence: true, isJoiningTask: true } } } },
         payments: true,

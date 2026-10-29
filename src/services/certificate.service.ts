@@ -1,15 +1,15 @@
+import fsp from 'fs/promises';
 import crypto from 'crypto';
 import { CertificateStatus, Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { safeFilename, storage } from '../config/storage';
-import { fillPlaceholders, renderPdf } from '../integrations/pdf/pdf';
-import { generateQrPng } from '../integrations/qr/qr';
 import { certificateModel } from '../models/certificate.model';
 import { AppError } from '../utils/AppError';
-import { formatDate, orderBy, paged, pagination, todayUtc } from '../utils/helpers';
+import { orderBy, paged, pagination, todayUtc } from '../utils/helpers';
 import { logger } from '../utils/logger';
 import { internshipService } from './internship.service';
+import { infovanceCertificateService } from './infovanceCertificate.service';
 
 const newVerificationId = () => `ISC-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 export const verificationUrl = (id: string) => `${env.FRONTEND_URL.replace(/\/$/, '')}/verify/${id}`;
@@ -29,29 +29,23 @@ export const certificateService = {
     });
     if (payment.status !== 'PAID') throw AppError.badRequest('Payment is not confirmed');
     const e = payment.enrollment;
-    const template = await storage.readTemplate(env.CERTIFICATE_TEMPLATE);
 
     const verificationId = newVerificationId();
     const issueDate = todayUtc();
-    const body = fillPlaceholders(template, {
+
+    const { pdfBuffer, htmlContent } = await infovanceCertificateService.renderPdf({
+      verificationId,
       name: e.user.name,
       domain: e.domain.name,
-      duration: `${e.durationWeeks} weeks`,
-      start_date: formatDate(e.startDate),
-      end_date: formatDate(e.endDate),
-      unique_id: verificationId,
-      intern_id: e.internId,
-      issue_date: formatDate(issueDate),
+      startDate: e.startDate,
+      endDate: e.endDate,
+      issueDate,
+      durationWeeks: e.durationWeeks,
+      verificationUrl: verificationUrl(verificationId),
     });
-    const qr = await generateQrPng(verificationUrl(verificationId));
-    const pdf = await renderPdf({
-      title: 'Certificate of Internship',
-      body,
-      qrPng: qr,
-      landscape: true,
-      footer: `Certificate ID: ${verificationId} | Verify at ${verificationUrl(verificationId)}`,
-    });
-    const filePath = await storage.save('certificates', safeFilename(`cert-${verificationId}`, 'pdf'), pdf);
+
+    const filePath = await storage.save('certificates', safeFilename(`cert-${verificationId}`, 'pdf'), pdfBuffer);
+    await storage.save('certificates', safeFilename(`cert-${verificationId}`, 'html'), Buffer.from(htmlContent, 'utf-8'));
 
     try {
       return await prisma.certificate.create({
@@ -111,7 +105,70 @@ export const certificateService = {
     const c = await certificateModel.findById(id);
     if (!c || (user.role !== 'ADMIN' && c.userId !== user.id)) throw AppError.notFound('Certificate not found');
     if (c.status === 'REVOKED' && user.role !== 'ADMIN') throw AppError.forbidden('Certificate has been revoked');
-    return { fullPath: await storage.getFile(c.filePath), filename: `Certificate-${c.verificationId}.pdf` };
+
+    const fullPath = await storage.getFile(c.filePath);
+    const stat = await fsp.stat(fullPath).catch(() => null);
+    const htmlPath = fullPath.replace(/\.pdf$/, '.html');
+    const htmlExists = await fsp.readFile(htmlPath, 'utf-8').catch(() => '');
+    const isOutdated = !stat || stat.size < 50000 || htmlExists.includes('Aarav Sharma') || !htmlExists.includes(c.verificationId);
+
+    if (isOutdated) {
+      try {
+        const { pdfBuffer, htmlContent } = await infovanceCertificateService.renderPdf({
+          verificationId: c.verificationId,
+          name: c.user.name,
+          domain: c.enrollment.domain.name,
+          startDate: c.enrollment.startDate,
+          endDate: c.enrollment.endDate,
+          issueDate: c.issueDate,
+          verificationUrl: verificationUrl(c.verificationId),
+        });
+        await fsp.writeFile(fullPath, pdfBuffer);
+        await fsp.writeFile(htmlPath, htmlContent, 'utf-8');
+      } catch (err) {
+        logger.warn({ err }, 'Failed to regenerate certificate with Infovance template');
+      }
+    }
+
+    return { fullPath, filename: `Certificate-${c.verificationId}.pdf` };
+  },
+
+  async getHtml(id: string, user: { id: string; role: string }) {
+    const c = await certificateModel.findById(id);
+    if (!c || (user.role !== 'ADMIN' && c.userId !== user.id)) throw AppError.notFound('Certificate not found');
+    if (c.status === 'REVOKED' && user.role !== 'ADMIN') throw AppError.forbidden('Certificate has been revoked');
+
+    const htmlPath = (await storage.getFile(c.filePath)).replace(/\.pdf$/, '.html');
+    const stat = await fsp.stat(htmlPath).catch(() => null);
+    if (!stat) {
+      const htmlContent = await infovanceCertificateService.renderHtml({
+        verificationId: c.verificationId,
+        name: c.user.name,
+        domain: c.enrollment.domain.name,
+        startDate: c.enrollment.startDate,
+        endDate: c.enrollment.endDate,
+        issueDate: c.issueDate,
+        verificationUrl: verificationUrl(c.verificationId),
+      });
+      await fsp.writeFile(htmlPath, htmlContent, 'utf-8');
+    }
+    return htmlPath;
+  },
+
+  async getHtmlByVerificationId(uniqueId: string) {
+    const c = await certificateModel.findByVerificationId(uniqueId.toUpperCase());
+    if (!c) throw AppError.notFound('No certificate found for this ID');
+    if (c.status === 'REVOKED') throw AppError.forbidden('Certificate has been revoked');
+
+    return infovanceCertificateService.renderHtml({
+      verificationId: c.verificationId,
+      name: c.user.name,
+      domain: c.enrollment.domain.name,
+      startDate: c.enrollment.startDate,
+      endDate: c.enrollment.endDate,
+      issueDate: c.issueDate,
+      verificationUrl: verificationUrl(c.verificationId),
+    });
   },
 
   async verify(uniqueId: string) {
@@ -161,7 +218,7 @@ export const certificateService = {
         orderBy: orderBy(q.sortBy, q.sortOrder, 'createdAt'),
         include: {
           user: { select: { id: true, name: true, email: true } },
-          enrollment: { select: { internId: true, domain: { select: { name: true } } } },
+          enrollment: { select: { id: true, internId: true, startDate: true, endDate: true, domain: { select: { id: true, name: true } } } },
         },
       }),
       prisma.certificate.count({ where }),

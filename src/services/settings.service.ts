@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
-import { certificateFee } from '../config/payment';
+import { certificateFee, DURATION_TOTAL_FEES } from '../config/payment';
 import { AppError } from '../utils/AppError';
 
 const SINGLETON_ID = 1;
@@ -44,12 +44,24 @@ function present(s: Awaited<ReturnType<typeof load>>) {
       currency: fee.currency,
       allowedDurationsWeeks: env.allowedDurations,
       certificateMinProgress: env.CERTIFICATE_MIN_PROGRESS,
+      durationFees: DURATION_TOTAL_FEES,
     },
   };
 }
 
 export const settingsService = {
   get: async () => present(await load()),
+
+  /** Public, non-sensitive business rules needed by clients before enrollment/payment. */
+  publicConfig() {
+    const fee = certificateFee();
+    return {
+      allowedDurationsWeeks: env.allowedDurations,
+      certificateMinProgress: env.CERTIFICATE_MIN_PROGRESS,
+      fee: { baseAmount: fee.baseAmount, gstAmount: fee.gstAmount, totalAmount: fee.totalAmount, gstPercent: fee.gstPercent, currency: fee.currency },
+      durationFees: DURATION_TOTAL_FEES,
+    };
+  },
 
   async update(adminId: string, input: SettingsUpdate) {
     if (Object.keys(input).length === 0) throw AppError.badRequest('Provide at least one setting to update');

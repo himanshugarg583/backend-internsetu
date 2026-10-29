@@ -22,6 +22,7 @@ export const userService = {
     status?: AccountStatus;
     domainId?: string;
     enrollmentStatus?: EnrollmentStatus | 'NONE';
+    emailVerified?: boolean;
     sortBy?: 'createdAt' | 'name' | 'email';
     sortOrder?: 'asc' | 'desc';
   }) {
@@ -29,6 +30,7 @@ export const userService = {
     const where: Prisma.UserWhereInput = {
       role: 'STUDENT',
       status: q.status,
+      ...(q.emailVerified !== undefined && { emailVerifiedAt: q.emailVerified ? { not: null } : null }),
       ...(q.enrollmentStatus === 'NONE'
         ? { enrollments: { none: q.domainId ? { domainId: q.domainId } : {} } }
         : (q.domainId || q.enrollmentStatus) && {
@@ -48,7 +50,14 @@ export const userService = {
         skip,
         take,
         orderBy: orderBy(q.sortBy, q.sortOrder, 'createdAt'),
-        select: publicUserSelect,
+        select: {
+          ...publicUserSelect,
+          enrollments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { id: true, internId: true, status: true, startDate: true, endDate: true, domain: { select: { id: true, name: true } } },
+          },
+        },
       }),
       prisma.user.count({ where }),
     ]);

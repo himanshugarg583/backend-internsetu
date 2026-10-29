@@ -1,33 +1,44 @@
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: internsetu
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-internsetu}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - internsetu-pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
+      timeout: 5s
       retries: 10
+
   backend:
     build: .
-    env_file: .env
+    restart: unless-stopped
+    command: tsx watch src/server.ts
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/internsetu?schema=public
-      STORAGE_ROOT: /app/storage
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-4000}
+      STORAGE_ROOT: ${STORAGE_ROOT:-/app/storage}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-internsetu}?schema=public}
     ports:
-      - "4000:4000"
+      - "${PORT:-4000}:${PORT:-4000}"
     volumes:
       - internsetu-storage:/app/storage
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./storage/templates:/app/storage/templates
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
 volumes:
   internsetu-pg:
   internsetu-storage:

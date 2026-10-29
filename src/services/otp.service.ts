@@ -5,9 +5,23 @@ import { env } from '../config/env';
 import { otpModel } from '../models/otp.model';
 import { sendOtpEmail } from '../integrations/email/mailer';
 import { AppError } from '../utils/AppError';
+import { logger } from '../utils/logger';
 
 const hashOtp = (email: string, purpose: OtpPurpose, otp: string) =>
   crypto.createHmac('sha256', env.JWT_ACCESS_SECRET).update(`${email}:${purpose}:${otp}`).digest('hex');
+
+function printOtpToConsole(email: string, otp: string, purpose: OtpPurpose) {
+  const line = '═'.repeat(62);
+  const purposeLabel = purpose === 'EMAIL_VERIFICATION' ? 'EMAIL VERIFICATION (REGISTRATION)' : 'PASSWORD RESET';
+  console.log(`\n${line}`);
+  console.log(`  🔐 [INTERNSETU OTP DISPATCH]`);
+  console.log(`  📧 Recipient : ${email}`);
+  console.log(`  📋 Purpose   : ${purposeLabel}`);
+  console.log(`  🔑 OTP CODE  : >>> ${otp} <<<`);
+  console.log(`  ⏱️  Valid for : ${env.OTP_TTL_MINUTES} minutes`);
+  console.log(`  📅 Timestamp : ${new Date().toLocaleString()}`);
+  console.log(`${line}\n`);
+}
 
 export const otpService = {
   /** Issues a new OTP, invalidating older ones. Returns the plaintext only for delivery. */
@@ -37,7 +51,21 @@ export const otpService = {
         },
       }),
     ]);
-    await sendOtpEmail(email, otp, purpose);
+
+    // Print OTP in readable format in server console
+    printOtpToConsole(email, otp, purpose);
+
+    try {
+      await sendOtpEmail(email, otp, purpose);
+      console.log(`✅ [EMAIL SUCCESS] Verification email sent to ${email}`);
+    } catch (mailErr: any) {
+      console.error(`\n❌ [EMAIL FAILED] Could not deliver email to ${email}`);
+      console.error(`   Reason: ${mailErr?.message || mailErr}`);
+      console.error(`   👉 ACTION: Check SMTP credentials in backend-internsetu/.env.`);
+      console.error(`   👉 OTP FOR TESTING: [ ${otp} ] (use this code to verify now!)\n`);
+      logger.warn({ err: mailErr?.message, email }, 'Failed to deliver OTP email via SMTP');
+    }
+
     return otp;
   },
 

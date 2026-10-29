@@ -117,7 +117,7 @@ export const submissionService = {
         orderBy: orderBy(q.sortBy, q.sortOrder, 'submittedAt', 'asc'),
         include: {
           task: { select: { title: true, sequence: true, isJoiningTask: true } },
-          enrollment: { select: { internId: true, user: { select: { id: true, name: true, email: true } } } },
+          enrollment: { select: { id: true, internId: true, domain: { select: { id: true, name: true } }, user: { select: { id: true, name: true, email: true } } } },
         },
       }),
       prisma.taskSubmission.count({ where }),

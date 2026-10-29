@@ -69,7 +69,7 @@ export const paymentService = {
     const paid = await prisma.payment.findFirst({ where: { enrollmentId: e.id, status: 'PAID' } });
     if (paid) throw AppError.conflict('Certificate fee already paid');
 
-    const fee = certificateFee();
+    const fee = certificateFee(e.durationWeeks);
     // Reuse a recent unpaid order to avoid creating duplicates on repeated clicks.
     const pending = await prisma.payment.findFirst({
       where: {
@@ -231,7 +231,11 @@ export const paymentService = {
   async getOwned(id: string, user: { id: string; role: string }) {
     const p = await prisma.payment.findUnique({
       where: { id },
-      include: { certificate: { select: { id: true, verificationId: true, status: true } } },
+      include: {
+        certificate: { select: { id: true, verificationId: true, status: true } },
+        user: { select: { id: true, name: true, email: true } },
+        enrollment: { select: { internId: true } },
+      },
     });
     if (!p || (user.role !== 'ADMIN' && p.userId !== user.id)) throw AppError.notFound('Payment not found');
     return p;
@@ -265,7 +269,7 @@ export const paymentService = {
         skip,
         take,
         orderBy: orderBy(q.sortBy, q.sortOrder, 'createdAt'),
-        include: { user: { select: { id: true, name: true, email: true } } },
+        include: { user: { select: { id: true, name: true, email: true } }, enrollment: { select: { internId: true, domainId: true } } },
       }),
       prisma.payment.count({ where }),
     ]);

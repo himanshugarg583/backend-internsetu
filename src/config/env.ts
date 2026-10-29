@@ -34,11 +34,11 @@ const schema = z.object({
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
-  CERTIFICATE_BASE_FEE: z.coerce.number().positive().default(499),
+  CERTIFICATE_BASE_FEE: z.coerce.number().positive().default(129),
   GST_PERCENT: z.coerce.number().min(0).default(18),
   CURRENCY: z.string().default('INR'),
   INTERN_ID_PREFIX: z.string().default('ISX'),
-  ALLOWED_DURATIONS_WEEKS: z.string().default('2,4,6,8'),
+  ALLOWED_DURATIONS_WEEKS: z.string().default('4,6,8,12,16,20,24'),
   CERTIFICATE_MIN_PROGRESS: z.coerce.number().min(0).max(100).default(50),
 });
 

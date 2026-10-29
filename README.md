@@ -26,7 +26,7 @@ docker build -t internsetu-backend .
 docker compose up -d --build      # postgres + backend on http://localhost:4000
 ```
 
-The multi-stage `Dockerfile` (node 22 alpine) runs `prisma generate` + `tsc` in the build stage and, at start, `prisma migrate deploy` followed by `node dist/server.js`. The `backend` compose service reads `env_file: .env` and overrides `DATABASE_URL` to the compose `postgres` host; generated files persist in the `internsetu-storage` volume. `.dockerignore` excludes `node_modules`, `.env`, tests and generated storage.
+The multi-stage `Dockerfile` (node 22 alpine) runs `prisma generate` + `tsc` in the build stage. On container start, `docker-entrypoint.sh` automatically executes `npx prisma migrate deploy` before launching the Node server (`node dist/server.js`). All database credentials and sensitive parameters are mapped through `.env` in `docker-compose.yml`. Generated files persist in the `internsetu-storage` volume. `.dockerignore` excludes `node_modules`, `.env`, tests, and generated storage.
 
 ## Database (10 tables)
 
@@ -71,3 +71,15 @@ List endpoints accept `page`, `limit` (≤100), `search` plus filters, and `sort
 
 - **SMTP** (`SMTP_HOST`, …): used for OTP emails and payment receipts; without it emails are not delivered (a warning is logged). Sender = `SMTP_FROM`, else `SMTP_BACKUP_FROM`, else `SMTP_USER`.
 - **Razorpay** (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`): order creation returns `503` until key id/secret are set. `RAZORPAY_WEBHOOK_SECRET` is optional: when empty the webhook returns `503` and payments are confirmed via `POST /payments/verify`. Configure the webhook URL `https://<host>/api/v1/payments/webhook/razorpay` with events `payment.captured`, `order.paid`, `payment.failed`, `refund.processed`. Gateway calls were tested only with mocks/HMAC-signed payloads, not against live Razorpay.
+
+
+Role: ADMIN
+Email: admin@internsetu.in
+Password: AdminPassword@123
+Status: ACTIVE (Email Verified ✅)
+
+
+Role: STUDENT
+Email: student@internsetu.in
+Password: StudentPassword@123
+Name: Demo Student

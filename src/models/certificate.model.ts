@@ -1,7 +1,11 @@
 import { prisma } from '../config/database';
 
 export const certificateModel = {
-  findById: (id: string) => prisma.certificate.findUnique({ where: { id } }),
+  findById: (id: string) =>
+    prisma.certificate.findUnique({
+      where: { id },
+      include: { user: true, enrollment: { include: { domain: true } } },
+    }),
   findByVerificationId: (verificationId: string) =>
     prisma.certificate.findUnique({
       where: { verificationId },

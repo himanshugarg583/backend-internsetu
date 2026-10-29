@@ -68,6 +68,9 @@ model User {
   college         String?
   course          String?
   academicYear    String?
+  dob             String?
+  gender          String?
+  city            String?
   role            Role          @default(STUDENT)
   status          AccountStatus @default(ACTIVE)
   emailVerifiedAt DateTime?

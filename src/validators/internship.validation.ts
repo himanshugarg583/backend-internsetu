@@ -17,3 +17,5 @@ export const adminListInternshipsSchema = {
     .merge(sortQuery(['createdAt', 'startDate', 'endDate', 'internId', 'status']))
     .extend({ domainId: uuid.optional(), status: z.enum(['ACTIVE', 'COMPLETED', 'CANCELLED']).optional() }),
 };
+
+export const cancelInternshipSchema = { params: idParams, body: z.object({ reason: z.string().trim().min(3).max(500) }) };

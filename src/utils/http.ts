@@ -4,7 +4,34 @@ import { env } from '../config/env';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const v = (res: Response): { body: any; params: any; query: any } => res.locals.v;
 
-export const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ success: true, data });
+export function ok(
+  res: Response,
+  data: unknown,
+  messageOrStatus?: string | number,
+  status = 200,
+) {
+  let message = 'Operation successful';
+  let httpStatus = status;
+
+  if (typeof messageOrStatus === 'number') {
+    httpStatus = messageOrStatus;
+    message = httpStatus === 201 ? 'Created successfully' : 'Operation successful';
+  } else if (typeof messageOrStatus === 'string') {
+    message = messageOrStatus;
+  }
+
+  if (
+    data &&
+    typeof data === 'object' &&
+    'message' in data &&
+    typeof (data as { message: unknown }).message === 'string' &&
+    (!messageOrStatus || messageOrStatus === 'Operation successful')
+  ) {
+    message = (data as { message: string }).message;
+  }
+
+  return res.status(httpStatus).json({ success: true, message, data });
+}
 
 export const REFRESH_COOKIE = 'refresh_token';
 
