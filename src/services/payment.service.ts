@@ -54,7 +54,7 @@ async function buildReceipt(paymentId: string) {
 
 async function sendReceipt(paymentId: string) {
   const r = await buildReceipt(paymentId);
-  await sendMail(r.payment.user.email, 'Your InternSetu payment receipt', r.body, [
+  await sendMail(r.payment.user.email, 'Your Infovance Technology payment receipt', r.body, [
     { filename: 'receipt.pdf', path: r.fullPath },
   ]);
 }

@@ -3,7 +3,7 @@ Intern ID: {{unique_id}}
 
 Dear {{name}},
 
-Congratulations! We are pleased to offer you the position of {{domain}} Intern at InternSetu.
+Congratulations! We are pleased to offer you the position of {{domain}} Intern at Infovance Technology.
 
 Your internship details are as follows:
 
@@ -12,9 +12,11 @@ Your internship details are as follows:
   Start Date:  {{start_date}}
   End Date:    {{end_date}}
 
-This is a remote, project-based internship. You will be assigned practical tasks through your InternSetu dashboard. Please complete the joining task by sharing this offer letter on LinkedIn.
+This is a remote, project-based internship. You will be assigned practical tasks through your Infovance Technology dashboard. Please complete the joining task by sharing this offer letter on LinkedIn.
 
 We look forward to working with you.
 
 Warm regards,
-Team InternSetu
+Team Infovance Technology
+HR: hr@infovence.in | Support: support@infovence.in | +91 86965 63594
+linkedin.com/company/infovance-technologies

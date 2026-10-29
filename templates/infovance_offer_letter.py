@@ -43,9 +43,9 @@ TAGLINE = "Think Ahead. Build Beyond."
 SIGNATORY_NAME = "Authorized Signatory"      # e.g. "Rahul Verma"
 SIGNATORY_TITLE = "Infovance Technologies"   # e.g. "Founder & CEO"
 # Footer contact details - replace with the real ones (set a value to "" to hide it)
-WEBSITE = "www.your-website.com"
-PHONE = "+91 XXXXX XXXXX"
-EMAIL = "name@your-email.com"
+WEBSITE = "linkedin.com/company/infovance-technologies"
+PHONE = "+91 86965 63594"
+EMAIL = "hr@infovence.in"
 # MSME / Udyam badge shown next to the seal. Use your real Udyam number (set MSME_BADGE = False to hide)
 MSME_BADGE = True
 UDYAM_NO = "UDYAM-XX-00-0000000"

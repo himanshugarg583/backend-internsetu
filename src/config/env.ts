@@ -57,5 +57,5 @@ export const env = {
   mailFrom:
     parsed.data.SMTP_FROM?.trim() ||
     parsed.data.SMTP_BACKUP_FROM?.trim() ||
-    (parsed.data.SMTP_USER ? `InternSetu <${parsed.data.SMTP_USER}>` : 'InternSetu <no-reply@internsetu.local>'),
+    (parsed.data.SMTP_USER ? `Infovance Technology <${parsed.data.SMTP_USER}>` : 'Infovance Technology <no-reply@infovence.in>'),
 };

@@ -79,9 +79,9 @@ export const infovanceCertificateService = {
     const issueFmt = this.formatDate(data.issueDate);
     const durFmt = this.formatDuration(data.startDate, data.endDate, data.durationWeeks);
 
-    const website = data.website || 'www.infovancetech.com';
-    const phone = data.phone || '+91 80000 00000';
-    const email = data.email || 'contact@infovancetech.com';
+    const website = data.website || 'linkedin.com/company/infovance-technologies';
+    const phone = data.phone || '+91 86965 63594';
+    const email = data.email || 'support@infovence.in';
     const udyam = data.udyam || 'UDYAM-DL-08-0012345';
 
     // Generate QR code PNG

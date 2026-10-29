@@ -13,3 +13,4 @@ const make = (windowMs: number, limit: number) =>
 export const globalLimiter = make(60_000, 300);
 export const authLimiter = make(15 * 60_000, 30);
 export const otpLimiter = make(15 * 60_000, 10);
+export const contactLimiter = make(60 * 60_000, 5);

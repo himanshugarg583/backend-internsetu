@@ -251,11 +251,50 @@ model Certificate {
 /// Singleton row (id = 1) holding admin-editable platform settings. Fees/GST remain env-driven.
 model PlatformSetting {
   id            Int      @id @default(1)
-  platformName  String   @default("InternSetu")
+  platformName  String   @default("Infovance Technology")
   supportEmail  String?
   supportPhone  String?
   notifications Json     @default("{}")
   updatedById   String?  @db.Uuid
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+
+enum EnquiryType {
+  GENERAL
+  ENROLLMENT
+  TASK_SUBMISSION
+  PAYMENT
+  CERTIFICATE
+  TECHNICAL
+  OTHER
+}
+
+enum EnquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+/// Public "Contact us" form submissions.
+model ContactEnquiry {
+  id         String        @id @default(uuid()) @db.Uuid
+  name       String        @db.VarChar(100)
+  email      String        @db.VarChar(254)
+  subject    String        @db.VarChar(150)
+  type       EnquiryType
+  message    String        @db.VarChar(1000)
+  status     EnquiryStatus @default(NEW)
+  adminNote  String?       @db.VarChar(1000)
+  ipAddress  String?       @db.VarChar(64)
+  userAgent  String?       @db.VarChar(300)
+  resolvedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@map("contact_enquiries")
 }

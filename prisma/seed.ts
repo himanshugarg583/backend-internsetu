@@ -30,7 +30,7 @@ async function main() {
       {
         sequence: 0,
         title: 'Joining Task: Share your offer letter',
-        description: 'Post your InternSetu offer letter on LinkedIn, tag InternSetu, and submit the post link.',
+        description: 'Post your Infovance Technology offer letter on LinkedIn, tag Infovance Technologies, and submit the post link.',
         isJoiningTask: true,
         requiresLinkedin: true,
         requiresGithub: false,
@@ -61,9 +61,9 @@ async function main() {
     update: {},
     create: {
       id: 1,
-      platformName: 'InternSetu',
-      supportEmail: 'support@internsetu.in',
-      supportPhone: '+91 9876543210',
+      platformName: 'Infovance Technology',
+      supportEmail: 'support@infovence.in',
+      supportPhone: '+91 86965 63594',
       notifications: {
         emailOnRegistration: true,
         emailOnSubmissionReview: true,

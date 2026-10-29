@@ -7,7 +7,7 @@ import { logger } from './utils/logger';
 async function main() {
   ensureStorageDirs();
   await prisma.$connect();
-  const server = createApp().listen(env.PORT, () => logger.info(`InternSetu API listening on :${env.PORT}`));
+  const server = createApp().listen(env.PORT, () => logger.info(`Infovance Technology API listening on :${env.PORT}`));
   const shutdown = async () => {
     server.close();
     await prisma.$disconnect();

@@ -16,6 +16,6 @@ export async function sendMail(to: string, subject: string, text: string, attach
 export const sendOtpEmail = (to: string, otp: string, purpose: string) =>
   sendMail(
     to,
-    purpose === 'PASSWORD_RESET' ? 'InternSetu password reset code' : 'Verify your InternSetu email',
-    `Your InternSetu verification code is ${otp}. It expires in ${env.OTP_TTL_MINUTES} minutes. Do not share it with anyone.`,
+    purpose === 'PASSWORD_RESET' ? 'Infovance Technology password reset code' : 'Verify your Infovance Technology email',
+    `Your Infovance Technology verification code is ${otp}. It expires in ${env.OTP_TTL_MINUTES} minutes. Do not share it with anyone.`,
   );
