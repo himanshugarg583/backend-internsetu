@@ -3,7 +3,8 @@ import { prisma } from '../config/database';
 import { certificateFee, isRazorpayConfigured, isRazorpayWebhookConfigured } from '../config/payment';
 import { storage } from '../config/storage';
 import { razorpayGateway } from '../integrations/razorpay/razorpay.client';
-import { renderPdf } from '../integrations/pdf/pdf';
+import { renderReceiptPdf } from '../integrations/pdf/receipt';
+import { env } from '../config/env';
 import { sendMail } from '../integrations/email/mailer';
 import { AppError } from '../utils/AppError';
 import { dateFilter, formatDate, orderBy, paged, pagination } from '../utils/helpers';
@@ -38,8 +39,29 @@ async function buildReceipt(paymentId: string) {
     `GST: ${p.currency} ${p.gstAmount.toFixed(2)}`,
     `Total paid: ${p.currency} ${p.totalAmount.toFixed(2)}`,
   ].join('\n');
-  const pdf = await renderPdf({ title: 'Payment Receipt', body });
-  const filename = `receipt-${p.id}.pdf`;
+  const paidAt = p.paidAt ?? p.updatedAt;
+  const pdf = await renderReceiptPdf({
+    receiptNo: `IVT-RCPT-${paidAt.getFullYear()}-${p.id.slice(0, 8).toUpperCase()}`,
+    status: p.status === 'REFUNDED' ? 'REFUNDED' : 'PAID',
+    paidAt,
+    customer: { name: p.user.name, email: p.user.email, phone: p.user.phone, college: p.user.college, city: p.user.city },
+    item: {
+      title: `Internship Certificate Fee - ${p.enrollment.domain.name}`,
+      description: `${p.enrollment.durationWeeks}-week internship programme`,
+      internId: p.enrollment.internId,
+      period: `${formatDate(p.enrollment.startDate)} to ${formatDate(p.enrollment.endDate)}`,
+    },
+    orderId: p.gatewayOrderId,
+    paymentId: p.gatewayPaymentId,
+    method: 'Online (Razorpay)',
+    currency: p.currency,
+    baseAmount: Number(p.baseAmount),
+    gstAmount: Number(p.gstAmount),
+    gstPercent: Number(p.baseAmount) > 0 ? Math.round((Number(p.gstAmount) / Number(p.baseAmount)) * 100) : env.GST_PERCENT,
+    totalAmount: Number(p.totalAmount),
+  });
+  // v2 suffix: receipts rendered with the old plain layout are not reused.
+  const filename = `receipt-v2-${p.status === 'REFUNDED' ? 'refunded-' : ''}${p.id}.pdf`;
   if (!(await storage.exists(`receipts/${filename}`))) {
     // Deduplicate concurrent generation (e.g. background email + download) of the same receipt file.
     let pending = receiptWrites.get(filename);

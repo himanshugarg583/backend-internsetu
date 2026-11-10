@@ -82,7 +82,7 @@ export const infovanceCertificateService = {
     const website = data.website || 'linkedin.com/company/infovance-technologies';
     const phone = data.phone || '+91 86965 63594';
     const email = data.email || 'support@infovence.in';
-    const udyam = data.udyam || 'UDYAM-DL-08-0012345';
+    const udyam = data.udyam || 'UDYAM-RJ-17-0703781';
 
     // Generate QR code PNG
     let qrImgTag = 'QR Code';

@@ -48,7 +48,7 @@ PHONE = "+91 86965 63594"
 EMAIL = "hr@infovence.in"
 # MSME / Udyam badge shown next to the seal. Use your real Udyam number (set MSME_BADGE = False to hide)
 MSME_BADGE = True
-UDYAM_NO = "UDYAM-XX-00-0000000"
+UDYAM_NO = "UDYAM-RJ-17-0703781"
 
 NAVY = HexColor("#0B1020")
 INK = HexColor("#2A3147")
@@ -454,17 +454,24 @@ def build_letter(out_path, name, domain, start, end, seq=1, issue_date=None, ass
     c.drawString(M, y - 10, "Best regards,")
 
     # ---- signature block + seal
-    sig_line_y = 104
+    sig_line_y = 90
     c.setStrokeColor(NAVY)
     c.setLineWidth(0.9)
     c.line(M, sig_line_y, M + 150, sig_line_y)
+    sig_path = os.path.join(assets, "signature.png")
+    if os.path.exists(sig_path):
+        sig_img = ImageReader(sig_path)
+        iw, ih = sig_img.getSize()
+        sh = 28
+        sw = sh * iw / ih
+        c.drawImage(sig_img, M + 6, sig_line_y + 1, sw, sh, mask="auto")
     c.setFillColor(NAVY)
     c.setFont(get_font("Bold"), 10)
     c.drawString(M, sig_line_y - 14, SIGNATORY_NAME)
     c.setFillColor(MUTED)
     c.setFont(get_font("Regular"), 8.3)
     c.drawString(M, sig_line_y - 26, SIGNATORY_TITLE)
-    seal_cx, seal_cy = W - M - 46, sig_line_y + 4
+    seal_cx, seal_cy = W - M - 46, 108
     draw_seal(c, seal_cx, seal_cy, symbol_img, r=44)
     if MSME_BADGE:
         bw, bh = 124, 72
